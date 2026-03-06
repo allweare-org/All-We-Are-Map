@@ -301,11 +301,13 @@ map.on('load', () => {
         </div>
       `;
 
-      new mapboxgl.Popup({ offset: 18 })
-        .setLngLat(coords)
-        .setHTML(popupHtml)
-        .addTo(map);
-    });
+    new mapboxgl.Popup({
+      offset: 18,
+      maxWidth: "520px"
+    })
+      .setLngLat(coords)
+      .setHTML(popupHtml)
+      .addTo(map);
 
     map.on('mouseenter', 'clusters', () => {
       map.getCanvas().style.cursor = 'pointer';
@@ -327,4 +329,5 @@ map.on('load', () => {
 </script>
 </body>
 </html>
+
 
