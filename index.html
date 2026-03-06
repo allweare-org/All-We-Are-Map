@@ -22,48 +22,50 @@ body {
   width: 100%;
 }
 
-/* Top-right custom controls container */
+/* Controls container */
 #customControls {
   position: absolute;
-  top: 20px;
   right: 20px;
+  bottom: 20px;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-items: flex-end;
 }
 
-/* Style toggle button */
+/* Style toggle */
 #styleToggle {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border: 2px solid rgba(255,255,255,0.85);
   border-radius: 10px;
-  background: rgba(80, 78, 64, 0.9);
+  background: rgba(92, 88, 72, 0.92);
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-  padding: 0;
 }
 
 #styleToggle:hover {
-  background: rgba(96, 94, 77, 0.95);
+  background: rgba(108,104,86,0.96);
 }
 
 #styleToggle svg {
-  width: 34px;
-  height: 34px;
-  display: block;
+  width: 28px;
+  height: 28px;
 }
 
-/* Mapbox zoom control styling */
-.mapboxgl-ctrl-top-right {
-  top: 96px;
+/* Zoom control positioning */
+.mapboxgl-ctrl-bottom-right {
   right: 20px;
+  bottom: 86px;
+}
+
+.mapboxgl-ctrl-top-right {
+  display: none;
 }
 
 .mapboxgl-ctrl-group {
@@ -74,8 +76,8 @@ body {
 }
 
 .mapboxgl-ctrl-group button {
-  width: 64px !important;
-  height: 64px !important;
+  width: 56px !important;
+  height: 56px !important;
   background: #ffffff !important;
 }
 
@@ -84,7 +86,7 @@ body {
 }
 
 .mapboxgl-ctrl-group button span {
-  transform: scale(1.25);
+  transform: scale(1.05);
 }
 
 /* Popup styling */
@@ -119,7 +121,6 @@ body {
   font-weight: 500;
   line-height: 1.15;
   margin: 0 36px 12px 0;
-  color: #333333;
   white-space: normal;
   overflow-wrap: break-word;
 }
@@ -143,8 +144,6 @@ body {
 .popup-icon {
   width: 18px;
   height: 18px;
-  flex-shrink: 0;
-  display: inline-block;
 }
 
 .popup-details {
@@ -160,291 +159,176 @@ body {
 </head>
 
 <body>
+
 <div id="customControls">
-  <button id="styleToggle" aria-label="Switch map style" title="Switch map style">
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 3L4 7L12 11L20 7L12 3Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
-      <path d="M4 12L12 16L20 12" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M4 16.5L12 20.5L20 16.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </button>
+<button id="styleToggle">
+<svg viewBox="0 0 24 24" fill="none">
+<path d="M12 3L4 7L12 11L20 7L12 3Z" stroke="white" stroke-width="1.8"/>
+<path d="M4 12L12 16L20 12" stroke="white" stroke-width="1.8"/>
+<path d="M4 16.5L12 20.5L20 16.5" stroke="white" stroke-width="1.8"/>
+</svg>
+</button>
 </div>
 
 <div id="map"></div>
 
 <script>
-mapboxgl.accessToken = 'pk.eyJ1Ijoicy1wZXJrIiwiYSI6ImNtbWU1amJyZDBiNjcyc3E0bmZubXVwdm8ifQ.-II8pwN1aLKbed_BQXf0cA';
 
-function parseNumber(value) {
-  if (value === undefined || value === null) return 0;
-  return Number(String(value).replace(/,/g, '').trim()) || 0;
-}
-
-function escapeHtml(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+mapboxgl.accessToken = 'YOUR_MAPBOX_TOKEN';
 
 let currentStyle = 'dark';
 
 const styles = {
-  dark: 'mapbox://styles/mapbox/dark-v11',
-  real: 'mapbox://styles/mapbox/satellite-streets-v12'
+dark:'mapbox://styles/mapbox/dark-v11',
+real:'mapbox://styles/mapbox/satellite-streets-v12'
 };
 
 const map = new mapboxgl.Map({
-  container: 'map',
-  style: styles.dark,
-  center: [32.3, 0.3],
-  zoom: 5
+container:'map',
+style:styles.dark,
+center:[32.3,0.3],
+zoom:5
 });
 
 map.addControl(new mapboxgl.NavigationControl({
-  showCompass: false,
-  visualizePitch: false
-}), 'top-right');
+showCompass:false
+}), 'bottom-right');
 
-function addSiteLayers() {
-  d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
-    const features = data
-      .filter(d =>
-        d.longitude &&
-        d.latitude &&
-        !isNaN(parseNumber(d.longitude)) &&
-        !isNaN(parseNumber(d.latitude))
-      )
-      .map(d => ({
-        type: 'Feature',
-        properties: {
-          Population: parseNumber(d['Population']),
-          name: d['Customer Name'] || '',
-          district: d['District'] || '',
-          customerId: d['Customer ID'] || '',
-          customerType: d['Customer Type'] || '',
-          installDate: d['Install Date'] || '',
-          systemName: d['System Name'] || '',
-          designType: d['Design Type'] || '',
-          status: d['Status'] || '',
-          systemNumber: d['Customer System Number'] || ''
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [parseNumber(d.longitude), parseNumber(d.latitude)]
-        }
-      }));
-
-    const geojson = {
-      type: 'FeatureCollection',
-      features: features
-    };
-
-    if (map.getLayer('clusters')) map.removeLayer('clusters');
-    if (map.getLayer('cluster-count')) map.removeLayer('cluster-count');
-    if (map.getLayer('points')) map.removeLayer('points');
-    if (map.getSource('sites')) map.removeSource('sites');
-
-    map.addSource('sites', {
-      type: 'geojson',
-      data: geojson,
-      cluster: true,
-      clusterRadius: 150,
-      clusterMaxZoom: 13,
-      clusterProperties: {
-        people: ['+', ['get', 'Population']]
-      }
-    });
-
-    map.addLayer({
-      id: 'clusters',
-      type: 'circle',
-      source: 'sites',
-      filter: ['has', 'point_count'],
-      paint: {
-        'circle-color': '#E3BC47',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'people'],
-          0, 18,
-          1000, 26,
-          5000, 36,
-          10000, 46,
-          25000, 60,
-          50000, 76,
-          100000, 92
-        ]
-      }
-    });
-
-    map.addLayer({
-      id: 'cluster-count',
-      type: 'symbol',
-      source: 'sites',
-      filter: ['has', 'point_count'],
-      layout: {
-        'text-field': [
-          'case',
-          ['>=', ['get', 'people'], 1000],
-          [
-            'concat',
-            [
-              'to-string',
-              [
-                'case',
-                ['>=', ['get', 'people'], 10000],
-                ['round', ['/', ['get', 'people'], 1000]],
-                ['/', ['round', ['*', ['/', ['get', 'people'], 1000], 10]], 10]
-              ]
-            ],
-            'k'
-          ],
-          ['to-string', ['round', ['get', 'people']]]
-        ],
-        'text-size': 18,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
-      },
-      paint: {
-        'text-color': '#000000'
-      }
-    });
-
-    map.addLayer({
-      id: 'points',
-      type: 'circle',
-      source: 'sites',
-      filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': '#E3BC47',
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'Population'],
-          0, 5,
-          100, 8,
-          300, 12,
-          600, 16,
-          1000, 20
-        ],
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2
-      }
-    });
-
-    map.on('click', 'clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-      const clusterId = features[0].properties.cluster_id;
-
-      map.getSource('sites').getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-        map.easeTo({
-          center: features[0].geometry.coordinates,
-          zoom: zoom
-        });
-      });
-    });
-
-    map.on('click', 'points', (e) => {
-      const props = e.features[0].properties;
-      const coords = e.features[0].geometry.coordinates.slice();
-      const population = parseNumber(props.Population);
-
-      const checkIcon = `
-        <svg class="popup-icon" viewBox="0 0 20 20" aria-hidden="true">
-          <circle cx="10" cy="10" r="8.5" fill="none" stroke="#777" stroke-width="1.5"></circle>
-          <path d="M6 10.2l2.2 2.2L14 6.8" fill="none" stroke="#777" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-      `;
-
-      const personIcon = `
-        <svg class="popup-icon" viewBox="0 0 20 20" aria-hidden="true">
-          <circle cx="10" cy="6" r="3" fill="#777"></circle>
-          <path d="M5 16c0-2.8 2.2-5 5-5s5 2.2 5 5" fill="#777"></path>
-        </svg>
-      `;
-
-      const popupHtml = `
-        <div class="popup-card">
-          <div class="popup-title">${escapeHtml(props.name || 'Site')}</div>
-
-          <div class="popup-meta-row">
-            <div class="popup-meta-item">
-              ${checkIcon}
-              <span>${escapeHtml(props.installDate || 'No install date')}</span>
-            </div>
-
-            <div class="popup-meta-item">
-              ${personIcon}
-              <span>${population.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <div class="popup-details">
-            <div><strong>System:</strong> ${escapeHtml(props.systemName || props.designType || 'N/A')}</div>
-            <div><strong>System number:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
-            <div><strong>Type:</strong> ${escapeHtml(props.customerType || 'N/A')}</div>
-            <div><strong>District:</strong> ${escapeHtml(props.district || 'N/A')}</div>
-            <div><strong>Customer ID:</strong> ${escapeHtml(props.customerId || 'N/A')}</div>
-          </div>
-        </div>
-      `;
-
-      new mapboxgl.Popup({
-        offset: 18,
-        maxWidth: '520px'
-      })
-        .setLngLat(coords)
-        .setHTML(popupHtml)
-        .addTo(map);
-    });
-
-    map.on('mouseenter', 'clusters', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', 'clusters', () => {
-      map.getCanvas().style.cursor = '';
-    });
-
-    map.on('mouseenter', 'points', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', 'points', () => {
-      map.getCanvas().style.cursor = '';
-    });
-  });
+function parseNumber(v){
+if(!v) return 0;
+return Number(String(v).replace(/,/g,'').trim()) || 0;
 }
 
-map.on('load', () => {
-  addSiteLayers();
+function escapeHtml(str){
+return String(str ?? '')
+.replace(/&/g,'&amp;')
+.replace(/</g,'&lt;')
+.replace(/>/g,'&gt;')
+.replace(/"/g,'&quot;')
+.replace(/'/g,'&#39;');
+}
+
+function addSiteLayers(){
+
+d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data){
+
+const features = data
+.filter(d=>d.longitude && d.latitude)
+.map(d=>({
+type:'Feature',
+properties:{
+Population:parseNumber(d['Population']),
+name:d['Customer Name'] || '',
+district:d['District'] || '',
+customerId:d['Customer ID'] || '',
+customerType:d['Customer Type'] || '',
+installDate:d['Install Date'] || '',
+systemName:d['System Name'] || '',
+designType:d['Design Type'] || '',
+systemNumber:d['Customer System Number'] || ''
+},
+geometry:{
+type:'Point',
+coordinates:[parseNumber(d.longitude),parseNumber(d.latitude)]
+}
+}));
+
+const geojson={
+type:'FeatureCollection',
+features:features
+};
+
+if(map.getSource('sites')) return;
+
+map.addSource('sites',{
+type:'geojson',
+data:geojson,
+cluster:true,
+clusterRadius:150,
+clusterMaxZoom:13,
+clusterProperties:{
+people:['+', ['get','Population']]
+}
 });
 
-document.getElementById('styleToggle').addEventListener('click', () => {
-  const center = map.getCenter();
-  const zoom = map.getZoom();
-  const bearing = map.getBearing();
-  const pitch = map.getPitch();
-
-  currentStyle = currentStyle === 'dark' ? 'real' : 'dark';
-
-  map.setStyle(styles[currentStyle]);
-
-  map.once('style.load', () => {
-    map.jumpTo({
-      center,
-      zoom,
-      bearing,
-      pitch
-    });
-    addSiteLayers();
-  });
+map.addLayer({
+id:'clusters',
+type:'circle',
+source:'sites',
+filter:['has','point_count'],
+paint:{
+'circle-color':'#E3BC47',
+'circle-stroke-color':'#ffffff',
+'circle-stroke-width':2,
+'circle-radius':[
+'interpolate',['linear'],['get','people'],
+0,18,
+1000,26,
+5000,36,
+10000,46,
+25000,60
+]
+}
 });
+
+map.addLayer({
+id:'cluster-count',
+type:'symbol',
+source:'sites',
+filter:['has','point_count'],
+layout:{
+'text-field':['to-string',['get','people']],
+'text-size':18
+},
+paint:{
+'text-color':'#000000'
+}
+});
+
+map.addLayer({
+id:'points',
+type:'circle',
+source:'sites',
+filter:['!',['has','point_count']],
+paint:{
+'circle-color':'#E3BC47',
+'circle-radius':[
+'interpolate',['linear'],['get','Population'],
+0,5,
+100,8,
+300,12,
+600,16,
+1000,20
+],
+'circle-stroke-color':'#ffffff',
+'circle-stroke-width':2
+}
+});
+
+});
+
+}
+
+map.on('load',()=>{
+addSiteLayers();
+});
+
+document.getElementById('styleToggle').onclick=()=>{
+
+const center=map.getCenter();
+const zoom=map.getZoom();
+
+currentStyle=currentStyle==='dark'?'real':'dark';
+
+map.setStyle(styles[currentStyle]);
+
+map.once('style.load',()=>{
+map.jumpTo({center,zoom});
+addSiteLayers();
+});
+
+};
+
 </script>
 </body>
 </html>
