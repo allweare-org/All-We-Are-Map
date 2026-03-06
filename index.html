@@ -22,21 +22,72 @@ body {
   width: 100%;
 }
 
-#styleToggle {
+/* Top-right custom controls container */
+#customControls {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 20px;
+  right: 20px;
   z-index: 10;
-  background: #ffffff;
-  color: #222;
-  border: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
 }
 
+/* Style toggle button */
+#styleToggle {
+  width: 64px;
+  height: 64px;
+  border: 2px solid rgba(255,255,255,0.85);
+  border-radius: 10px;
+  background: rgba(80, 78, 64, 0.9);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  padding: 0;
+}
+
+#styleToggle:hover {
+  background: rgba(96, 94, 77, 0.95);
+}
+
+#styleToggle svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+}
+
+/* Mapbox zoom control styling */
+.mapboxgl-ctrl-top-right {
+  top: 96px;
+  right: 20px;
+}
+
+.mapboxgl-ctrl-group {
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3) !important;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.mapboxgl-ctrl-group button {
+  width: 64px !important;
+  height: 64px !important;
+  background: #ffffff !important;
+}
+
+.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid #e5e5e5 !important;
+}
+
+.mapboxgl-ctrl-group button span {
+  transform: scale(1.25);
+}
+
+/* Popup styling */
 .mapboxgl-popup {
   max-width: 560px;
 }
@@ -109,7 +160,16 @@ body {
 </head>
 
 <body>
-<button id="styleToggle">Switch to real map</button>
+<div id="customControls">
+  <button id="styleToggle" aria-label="Switch map style" title="Switch map style">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3L4 7L12 11L20 7L12 3Z" stroke="white" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M4 12L12 16L20 12" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M4 16.5L12 20.5L20 16.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+
 <div id="map"></div>
 
 <script>
@@ -142,6 +202,11 @@ const map = new mapboxgl.Map({
   center: [32.3, 0.3],
   zoom: 5
 });
+
+map.addControl(new mapboxgl.NavigationControl({
+  showCompass: false,
+  visualizePitch: false
+}), 'top-right');
 
 function addSiteLayers() {
   d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
@@ -369,9 +434,6 @@ document.getElementById('styleToggle').addEventListener('click', () => {
   currentStyle = currentStyle === 'dark' ? 'real' : 'dark';
 
   map.setStyle(styles[currentStyle]);
-
-  document.getElementById('styleToggle').textContent =
-    currentStyle === 'dark' ? 'Switch to real map' : 'Switch to dark map';
 
   map.once('style.load', () => {
     map.jumpTo({
