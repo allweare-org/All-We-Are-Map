@@ -23,7 +23,7 @@ body {
 }
 
 .mapboxgl-popup {
-  max-width: 420px;
+  max-width: 560px;
 }
 
 .mapboxgl-popup-content {
@@ -44,15 +44,16 @@ body {
   background: #ffffff;
   color: #333333;
   padding: 22px 24px;
-  min-width: 300px;
+  min-width: 380px;
 }
 
 .popup-title {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 500;
-  line-height: 1.08;
-  margin: 0 0 14px 0;
+  line-height: 1.12;
+  margin: 0 34px 14px 0;
   color: #333333;
+  word-break: break-word;
 }
 
 .popup-meta-row {
@@ -69,6 +70,13 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.popup-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: inline-block;
 }
 
 .popup-details {
@@ -107,7 +115,7 @@ const map = new mapboxgl.Map({
   container: 'map',
   style: 'mapbox://styles/mapbox/dark-v11',
   center: [32.3, 0.3],
-  zoom: 6
+  zoom: 5
 });
 
 map.on('load', () => {
@@ -115,10 +123,8 @@ map.on('load', () => {
 
     const features = data
       .filter(d =>
-        d.longitude !== undefined &&
-        d.latitude !== undefined &&
-        d.longitude !== '' &&
-        d.latitude !== '' &&
+        d.longitude &&
+        d.latitude &&
         !isNaN(parseNumber(d.longitude)) &&
         !isNaN(parseNumber(d.latitude))
       )
@@ -134,9 +140,7 @@ map.on('load', () => {
           systemName: d['System Name'] || '',
           designType: d['Design Type'] || '',
           status: d['Status'] || '',
-          systemNumber: d['Customer System Number'] || '',
-          systemId: d['System ID'] || '',
-          locId: d['Loc ID'] || ''
+          systemNumber: d['Customer System Number'] || ''
         },
         geometry: {
           type: 'Point',
@@ -217,14 +221,12 @@ map.on('load', () => {
     });
 
     map.addLayer({
-      id: 'unclustered-point',
+      id: 'points',
       type: 'circle',
       source: 'sites',
       filter: ['!', ['has', 'point_count']],
       paint: {
         'circle-color': '#E3BC47',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
         'circle-radius': [
           'interpolate',
           ['linear'],
@@ -234,65 +236,43 @@ map.on('load', () => {
           300, 12,
           600, 16,
           1000, 20
-        ]
-      }
-    });
-
-    map.addLayer({
-      id: 'unclustered-label',
-      type: 'symbol',
-      source: 'sites',
-      filter: ['!', ['has', 'point_count']],
-      minzoom: 9,
-      layout: {
-        'text-field': [
-          'case',
-          ['>=', ['get', 'Population'], 1000],
-          [
-            'concat',
-            [
-              'to-string',
-              [
-                'case',
-                ['>=', ['get', 'Population'], 10000],
-                ['round', ['/', ['get', 'Population'], 1000]],
-                ['/', ['round', ['*', ['/', ['get', 'Population'], 1000], 10]], 10]
-              ]
-            ],
-            'k'
-          ],
-          ['to-string', ['round', ['get', 'Population']]]
         ],
-        'text-size': 13,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
-      },
-      paint: {
-        'text-color': '#000000'
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2
       }
     });
 
     map.on('click', 'clusters', (e) => {
-      const clusterFeatures = map.queryRenderedFeatures(e.point, {
-        layers: ['clusters']
-      });
-
-      const clusterId = clusterFeatures[0].properties.cluster_id;
+      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+      const clusterId = features[0].properties.cluster_id;
 
       map.getSource('sites').getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err) return;
-
         map.easeTo({
-          center: clusterFeatures[0].geometry.coordinates,
+          center: features[0].geometry.coordinates,
           zoom: zoom
         });
       });
     });
 
-    map.on('click', 'unclustered-point', (e) => {
+    map.on('click', 'points', (e) => {
       const props = e.features[0].properties;
       const coords = e.features[0].geometry.coordinates.slice();
       const population = parseNumber(props.Population);
-      const statusIcon = (props.status || '').toLowerCase() === 'installed' ? '✓' : '•';
+
+      const checkIcon = `
+        <svg class="popup-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="10" cy="10" r="8.5" fill="none" stroke="#777" stroke-width="1.5"></circle>
+          <path d="M6 10.2l2.2 2.2L14 6.8" fill="none" stroke="#777" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      `;
+
+      const personIcon = `
+        <svg class="popup-icon" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="10" cy="6" r="3" fill="#777"></circle>
+          <path d="M5 16c0-2.8 2.2-5 5-5s5 2.2 5 5" fill="#777"></path>
+        </svg>
+      `;
 
       const popupHtml = `
         <div class="popup-card">
@@ -300,12 +280,12 @@ map.on('load', () => {
 
           <div class="popup-meta-row">
             <div class="popup-meta-item">
-              <span>${statusIcon}</span>
+              ${checkIcon}
               <span>${escapeHtml(props.installDate || 'No install date')}</span>
             </div>
 
             <div class="popup-meta-item">
-              <span>👥</span>
+              ${personIcon}
               <span>${population.toLocaleString()}</span>
             </div>
           </div>
@@ -334,11 +314,11 @@ map.on('load', () => {
       map.getCanvas().style.cursor = '';
     });
 
-    map.on('mouseenter', 'unclustered-point', () => {
+    map.on('mouseenter', 'points', () => {
       map.getCanvas().style.cursor = 'pointer';
     });
 
-    map.on('mouseleave', 'unclustered-point', () => {
+    map.on('mouseleave', 'points', () => {
       map.getCanvas().style.cursor = '';
     });
   });
@@ -346,4 +326,3 @@ map.on('load', () => {
 </script>
 </body>
 </html>
-
