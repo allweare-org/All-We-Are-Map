@@ -3,119 +3,209 @@
 <head>
 <meta charset="utf-8">
 <title>All We Are Impact Map</title>
-
 <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js"></script>
-
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
 <style>
-body { margin:0; padding:0; }
-#map { position:absolute; top:0; bottom:0; width:100%; }
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
 </style>
-
 </head>
 
 <body>
-
 <div id="map"></div>
 
 <script>
-
-mapboxgl.accessToken = 'pk.eyJ1Ijoicy1wZXJrIiwiYSI6ImNtbWU1amJyZDBiNjcyc3E0bmZubXVwdm8ifQ.-II8pwN1aLKbed_BQXf0cA';
+mapboxgl.accessToken = 'PUT_YOUR_PK_TOKEN_HERE';
 
 const map = new mapboxgl.Map({
-container: 'map',
-style: 'mapbox://styles/mapbox/dark-v11',
-center: [32.3,0.3],
-zoom: 7
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [32.3, 0.3],
+  zoom: 6
 });
 
 map.on('load', () => {
+  d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
 
-d3.csv("Impact_Map_Export - Sheet1.csv").then(function(data){
+    const features = data
+      .filter(d =>
+        d.longitude !== undefined &&
+        d.latitude !== undefined &&
+        d.longitude !== '' &&
+        d.latitude !== '' &&
+        !isNaN(+d.longitude) &&
+        !isNaN(+d.latitude)
+      )
+      .map(d => ({
+        type: 'Feature',
+        properties: {
+          Population: +d.Population || 0,
+          name: d['Customer Name'] || '',
+          district: d.District || '',
+          customerId: d['Customer ID'] || ''
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [+d.longitude, +d.latitude]
+        }
+      }));
 
-const geojson = {
-type:"FeatureCollection",
-features:data.map(d => ({
-type:"Feature",
-properties:{
-Population:+d.Population
-},
-geometry:{
-type:"Point",
-coordinates:[+d.longitude,+d.latitude]
-}
-}))
-};
+    const geojson = {
+      type: 'FeatureCollection',
+      features: features
+    };
 
-map.addSource('sites', {
-type: 'geojson',
-data: geojson,
-cluster: true,
-clusterRadius: 50,
-clusterMaxZoom: 12,
-clusterProperties: {
-people: ['+', ['get','Population']]
-}
+    map.addSource('sites', {
+      type: 'geojson',
+      data: geojson,
+      cluster: true,
+      clusterRadius: 120,
+      clusterMaxZoom: 13,
+      clusterProperties: {
+        people: ['+', ['coalesce', ['to-number', ['get', 'Population']], 0]]
+      }
+    });
+
+    map.addLayer({
+      id: 'clusters',
+      type: 'circle',
+      source: 'sites',
+      filter: ['has', 'point_count'],
+      paint: {
+        'circle-color': '#E3BC47',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2,
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'people'],
+          0, 18,
+          1000, 26,
+          5000, 36,
+          10000, 46,
+          25000, 60,
+          50000, 76,
+          100000, 92
+        ]
+      }
+    });
+
+    map.addLayer({
+      id: 'cluster-count',
+      type: 'symbol',
+      source: 'sites',
+      filter: ['has', 'point_count'],
+      layout: {
+        'text-field': [
+          'case',
+          ['>=', ['get', 'people'], 1000],
+          ['concat', ['to-string', ['round', ['/', ['get', 'people'], 1000]]], 'k'],
+          ['to-string', ['round', ['get', 'people']]]
+        ],
+        'text-size': 18,
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
+      },
+      paint: {
+        'text-color': '#000000'
+      }
+    });
+
+    map.addLayer({
+      id: 'unclustered-point',
+      type: 'circle',
+      source: 'sites',
+      filter: ['!', ['has', 'point_count']],
+      paint: {
+        'circle-color': '#E3BC47',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 2,
+        'circle-radius': [
+          'interpolate',
+          ['linear'],
+          ['get', 'Population'],
+          0, 5,
+          100, 8,
+          300, 12,
+          600, 16,
+          1000, 20
+        ]
+      }
+    });
+
+    map.addLayer({
+      id: 'unclustered-label',
+      type: 'symbol',
+      source: 'sites',
+      filter: ['!', ['has', 'point_count']],
+      minzoom: 9,
+      layout: {
+        'text-field': [
+          'case',
+          ['>=', ['get', 'Population'], 1000],
+          ['concat', ['to-string', ['round', ['/', ['get', 'Population'], 1000]]], 'k'],
+          ['to-string', ['round', ['get', 'Population']]]
+        ],
+        'text-size': 13,
+        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
+      },
+      paint: {
+        'text-color': '#000000'
+      }
+    });
+
+    map.on('click', 'clusters', (e) => {
+      const features = map.queryRenderedFeatures(e.point, {
+        layers: ['clusters']
+      });
+
+      const clusterId = features[0].properties.cluster_id;
+
+      map.getSource('sites').getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+
+        map.easeTo({
+          center: features[0].geometry.coordinates,
+          zoom: zoom
+        });
+      });
+    });
+
+    map.on('click', 'unclustered-point', (e) => {
+      const props = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates.slice();
+
+      new mapboxgl.Popup()
+        .setLngLat(coords)
+        .setHTML(
+          `<strong>${props.name || 'Site'}</strong><br>` +
+          `People served: ${Number(props.Population).toLocaleString()}<br>` +
+          `${props.district ? `District: ${props.district}<br>` : ''}` +
+          `${props.customerId ? `Customer ID: ${props.customerId}` : ''}`
+        )
+        .addTo(map);
+    });
+
+    map.on('mouseenter', 'clusters', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.on('mouseleave', 'clusters', () => {
+      map.getCanvas().style.cursor = '';
+    });
+
+    map.on('mouseenter', 'unclustered-point', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.on('mouseleave', 'unclustered-point', () => {
+      map.getCanvas().style.cursor = '';
+    });
+  });
 });
-
-map.addLayer({
-id:'clusters',
-type:'circle',
-source:'sites',
-filter:['has','point_count'],
-paint:{
-'circle-color':'#E3BC47',
-'circle-radius':[
-'interpolate',
-['linear'],
-['get','people'],
-0,18,
-1000,28,
-5000,40,
-20000,55
-],
-'circle-stroke-width':2,
-'circle-stroke-color':'#fff'
-}
-});
-
-map.addLayer({
-id:'cluster-count',
-type:'symbol',
-source:'sites',
-filter:['has','point_count'],
-layout:{
-'text-field':['get','people'],
-'text-size':16
-},
-paint:{
-'text-color':'#000'
-}
-});
-
-map.addLayer({
-id:'points',
-type:'circle',
-source:'sites',
-filter:['!', ['has','point_count']],
-paint:{
-'circle-color':'#E3BC47',
-'circle-radius':6,
-'circle-stroke-width':2,
-'circle-stroke-color':'#fff'
-}
-});
-
-});
-
-});
-
 </script>
-
 </body>
 </html>
-
