@@ -1,389 +1,62 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>All We Are Impact Map</title>
-<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+map.on('click', 'unclustered-point', (e) => {
+  const props = e.features[0].properties;
+  const coords = e.features[0].geometry.coordinates.slice();
 
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js"></script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
+  const population = parseNumber(props.Population);
+  const statusIcon = (props.status || '').toLowerCase() === 'installed' ? '✓' : '•';
 
-<style>
-body { margin: 0; padding: 0; }
-#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+  const popupHtml = `
+    <div style="
+      background:#fff;
+      color:#333;
+      padding:20px 22px;
+      border-radius:16px;
+      min-width:320px;
+      font-family:Arial, sans-serif;
+    ">
+      <div style="
+        font-size:28px;
+        font-weight:500;
+        line-height:1.1;
+        margin-bottom:14px;
+      ">
+        ${escapeHtml(props.name || 'Site')}
+      </div>
 
-.mapboxgl-popup {
-  max-width: 760px;
-}
-
-.mapboxgl-popup-content {
-  padding: 0;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 10px 32px rgba(0,0,0,0.28);
-  font-family: Arial, sans-serif;
-}
-
-.mapboxgl-popup-close-button {
-  font-size: 22px;
-  padding: 8px 12px;
-  color: #666;
-}
-
-.popup-card {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-  background: #ffffff;
-  color: #333;
-  padding: 24px 28px;
-  min-width: 520px;
-}
-
-.popup-image {
-  width: 190px;
-  height: 190px;
-  border-radius: 14px;
-  background: #efefef;
-  flex-shrink: 0;
-  object-fit: cover;
-  display: block;
-}
-
-.popup-image-placeholder {
-  width: 190px;
-  height: 190px;
-  border-radius: 14px;
-  background: #efefef;
-  color: #999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-
-.popup-content {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-  flex: 1;
-}
-
-.popup-title {
-  font-size: 34px;
-  font-weight: 500;
-  line-height: 1.05;
-  margin: 0;
-  color: #2f2f2f;
-}
-
-.popup-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  align-items: center;
-  font-size: 20px;
-  color: #6b6b6b;
-}
-
-.popup-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.popup-icon {
-  width: 20px;
-  text-align: center;
-  display: inline-block;
-}
-
-.popup-details {
-  font-size: 16px;
-  line-height: 1.5;
-  color: #555;
-}
-
-.popup-details strong {
-  color: #333;
-}
-
-.popup-arrow {
-  font-size: 48px;
-  color: #444;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-</style>
-</head>
-
-<body>
-<div id="map"></div>
-
-<script>
-mapboxgl.accessToken = 'pk.eyJ1Ijoicy1wZXJrIiwiYSI6ImNtbWU1amJyZDBiNjcyc3E0bmZubXVwdm8ifQ.-II8pwN1aLKbed_BQXf0cA';
-
-function parseNumber(value) {
-  if (value === undefined || value === null) return 0;
-  return Number(String(value).replace(/,/g, '').trim()) || 0;
-}
-
-function escapeHtml(str) {
-  return String(str ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function formatCompact(n) {
-  if (n >= 1000) {
-    const k = n / 1000;
-    return (k >= 10 ? Math.round(k) : Math.round(k * 10) / 10) + 'k';
-  }
-  return String(Math.round(n));
-}
-
-const map = new mapboxgl.Map({
-  container: 'map',
-  style: 'mapbox://styles/mapbox/dark-v11',
-  center: [32.3, 0.3],
-  zoom: 6
-});
-
-map.on('load', () => {
-  d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
-
-    const features = data
-      .filter(d =>
-        d.longitude !== undefined &&
-        d.latitude !== undefined &&
-        d.longitude !== '' &&
-        d.latitude !== '' &&
-        !isNaN(parseNumber(d.longitude)) &&
-        !isNaN(parseNumber(d.latitude))
-      )
-      .map(d => ({
-        type: 'Feature',
-        properties: {
-          Population: parseNumber(d['Population']),
-          name: d['Customer Name'] || '',
-          district: d['District'] || '',
-          customerId: d['Customer ID'] || '',
-          customerType: d['Customer Type'] || '',
-          installDate: d['Install Date'] || '',
-          systemName: d['System Name'] || '',
-          designType: d['Design Type'] || '',
-          status: d['Status'] || '',
-          systemNumber: d['Customer System Number'] || '',
-          systemId: d['System ID'] || '',
-          locId: d['Loc ID'] || '',
-          imageUrl: d['Image URL'] || d['Image'] || d['Photo URL'] || ''
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [parseNumber(d.longitude), parseNumber(d.latitude)]
-        }
-      }));
-
-    const geojson = {
-      type: 'FeatureCollection',
-      features: features
-    };
-
-    map.addSource('sites', {
-      type: 'geojson',
-      data: geojson,
-      cluster: true,
-      clusterRadius: 150,
-      clusterMaxZoom: 13,
-      clusterProperties: {
-        people: ['+', ['coalesce', ['to-number', ['get', 'Population']], 0]]
-      }
-    });
-
-    map.addLayer({
-      id: 'clusters',
-      type: 'circle',
-      source: 'sites',
-      filter: ['has', 'point_count'],
-      paint: {
-        'circle-color': '#E3BC47',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'people'],
-          0, 18,
-          1000, 26,
-          5000, 36,
-          10000, 46,
-          25000, 60,
-          50000, 76,
-          100000, 92
-        ]
-      }
-    });
-
-    map.addLayer({
-      id: 'cluster-count',
-      type: 'symbol',
-      source: 'sites',
-      filter: ['has', 'point_count'],
-      layout: {
-        'text-field': [
-          'case',
-          ['>=', ['get', 'people'], 1000],
-          ['concat', ['to-string', ['round', ['*', ['/', ['get', 'people'], 1000], 10]]], ''],
-          ['to-string', ['round', ['get', 'people']]]
-        ],
-        'text-size': 18,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
-      },
-      paint: {
-        'text-color': '#000000'
-      }
-    });
-
-    map.addLayer({
-      id: 'unclustered-point',
-      type: 'circle',
-      source: 'sites',
-      filter: ['!', ['has', 'point_count']],
-      paint: {
-        'circle-color': '#E3BC47',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
-        'circle-radius': [
-          'interpolate',
-          ['linear'],
-          ['get', 'Population'],
-          0, 5,
-          100, 8,
-          300, 12,
-          600, 16,
-          1000, 20
-        ]
-      }
-    });
-
-    map.addLayer({
-      id: 'unclustered-label',
-      type: 'symbol',
-      source: 'sites',
-      filter: ['!', ['has', 'point_count']],
-      minzoom: 9,
-      layout: {
-        'text-field': [
-          'case',
-          ['>=', ['get', 'Population'], 1000],
-          ['concat',
-            ['to-string',
-              ['case',
-                ['>=', ['get', 'Population'], 10000],
-                ['round', ['/', ['get', 'Population'], 1000]],
-                ['/', ['round', ['*', ['/', ['get', 'Population'], 1000], 10]], 10]
-              ]
-            ],
-            'k'
-          ],
-          ['to-string', ['round', ['get', 'Population']]]
-        ],
-        'text-size': 13,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
-      },
-      paint: {
-        'text-color': '#000000'
-      }
-    });
-
-    map.on('click', 'clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, {
-        layers: ['clusters']
-      });
-
-      const clusterId = features[0].properties.cluster_id;
-
-      map.getSource('sites').getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-
-        map.easeTo({
-          center: features[0].geometry.coordinates,
-          zoom: zoom
-        });
-      });
-    });
-
-    map.on('click', 'unclustered-point', (e) => {
-      const props = e.features[0].properties;
-      const coords = e.features[0].geometry.coordinates.slice();
-
-      const population = parseNumber(props.Population);
-      const statusIcon = (props.status || '').toLowerCase() === 'installed' ? '✓' : '•';
-
-      const imageHtml = props.imageUrl
-        ? `<img class="popup-image" src="${escapeHtml(props.imageUrl)}" alt="${escapeHtml(props.name || 'Site')}">`
-        : `<div class="popup-image-placeholder">No image</div>`;
-
-      const popupHtml = `
-        <div class="popup-card">
-          ${imageHtml}
-          <div class="popup-content">
-            <h2 class="popup-title">${escapeHtml(props.name || 'Site')}</h2>
-
-            <div class="popup-meta-row">
-              <div class="popup-meta-item">
-                <span class="popup-icon">${statusIcon}</span>
-                <span>${escapeHtml(props.installDate || 'No install date')}</span>
-              </div>
-              <div class="popup-meta-item">
-                <span class="popup-icon">👥</span>
-                <span>${population.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <div class="popup-details">
-              <div><strong>System:</strong> ${escapeHtml(props.systemName || props.designType || 'N/A')}</div>
-              <div><strong>System number:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
-              <div><strong>Type:</strong> ${escapeHtml(props.customerType || 'N/A')}</div>
-              <div><strong>District:</strong> ${escapeHtml(props.district || 'N/A')}</div>
-              <div><strong>Customer ID:</strong> ${escapeHtml(props.customerId || 'N/A')}</div>
-            </div>
-          </div>
-          <div class="popup-arrow">›</div>
+      <div style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:18px;
+        align-items:center;
+        font-size:18px;
+        color:#666;
+        margin-bottom:14px;
+      ">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>${statusIcon}</span>
+          <span>${escapeHtml(props.installDate || 'No install date')}</span>
         </div>
-      `;
 
-      new mapboxgl.Popup({
-        offset: 18
-      })
-        .setLngLat(coords)
-        .setHTML(popupHtml)
-        .addTo(map);
-    });
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>👥</span>
+          <span>${population.toLocaleString()}</span>
+        </div>
+      </div>
 
-    map.on('mouseenter', 'clusters', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
+      <div style="font-size:15px; line-height:1.6; color:#555;">
+        <div><strong>System:</strong> ${escapeHtml(props.systemName || props.designType || 'N/A')}</div>
+        <div><strong>System number:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
+        <div><strong>Type:</strong> ${escapeHtml(props.customerType || 'N/A')}</div>
+        <div><strong>District:</strong> ${escapeHtml(props.district || 'N/A')}</div>
+        <div><strong>Customer ID:</strong> ${escapeHtml(props.customerId || 'N/A')}</div>
+      </div>
+    </div>
+  `;
 
-    map.on('mouseleave', 'clusters', () => {
-      map.getCanvas().style.cursor = '';
-    });
-
-    map.on('mouseenter', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
-
-    map.on('mouseleave', 'unclustered-point', () => {
-      map.getCanvas().style.cursor = '';
-    });
-  });
+  new mapboxgl.Popup({
+    offset: 18
+  })
+    .setLngLat(coords)
+    .setHTML(popupHtml)
+    .addTo(map);
 });
-</script>
-</body>
-</html>
