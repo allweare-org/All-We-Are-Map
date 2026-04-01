@@ -33,7 +33,7 @@ body {
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-  ping: 10px 12px;
+  padding: 10px 12px;
   min-width: 280px;
 }
 
@@ -375,7 +375,7 @@ function bindMapInteractions() {
   
         <div class="popup-details">
           <div><strong>System:</strong> ${escapeHtml(props.systemName || props.designType || 'N/A')}</div>
-          <div><strong>Number of Systems:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
+          <div><strong>System number:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
           <div><strong>Type:</strong> ${escapeHtml(props.customerType || 'N/A')}</div>
           <div><strong>District:</strong> ${escapeHtml(props.district || 'N/A')}</div>
         </div>
@@ -418,13 +418,14 @@ function addSiteLayers() {
         type: 'Feature',
         properties: {
           Population: parseNumber(d['Population']),
-          name: d['System Name'] || d['Customer Name'] || '',
+          name: d['Customer Name'] || '',
           district: d['District'] || '',
+          customerId: d['Customer ID'] || '',
           customerType: d['Customer Type'] || '',
           installDate: d['Install Date'] || '',
           systemName: d['System Name'] || '',
           designType: d['Design Type'] || '',
-          systemNumber: parseNumber(d['Customer System Total'])
+          systemNumber: d['Number of Systems'] || ''
         },
         geometry: {
           type: 'Point',
@@ -527,7 +528,7 @@ function addSiteLayers() {
     });
   });
 }
-  
+
 map.on('load', () => {
   addSiteLayers();
   bindMapInteractions();
