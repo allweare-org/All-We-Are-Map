@@ -375,11 +375,7 @@ function bindMapInteractions() {
   
         <div class="popup-details">
           <div><strong>System:</strong> ${escapeHtml(props.systemName || props.designType || 'N/A')}</div>
-          <div><strong>System number:</strong> ${escapeHtml(
-            props.systemNumber !== undefined && props.systemNumber !== null && props.systemNumber !== ''
-              ? props.systemNumber
-              : 'N/A'
-          )}</div>
+          <div><strong>System number:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
           <div><strong>Type:</strong> ${escapeHtml(props.customerType || 'N/A')}</div>
           <div><strong>District:</strong> ${escapeHtml(props.district || 'N/A')}</div>
         </div>
@@ -416,55 +412,56 @@ function bindMapInteractions() {
 
 function addSiteLayers() {
   d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
-    const grouped = new Map();
+  const grouped = new Map();
   
-    data
-      .filter(d => d.longitude && d.latitude)
-      .forEach(d => {
-        const lat = parseNumber(d.latitude);
-        const lng = parseNumber(d.longitude);
+  data
+    .filter(d => d.longitude && d.latitude)
+    .forEach(d => {
+      const lat = parseNumber(d.latitude);
+      const lng = parseNumber(d.longitude);
   
-        const systemNumber = parseNumber(d['Customer System Total']);
+      const systemNumber = parseNumber(d['Customer System Number']);
   
-        // Group by Customer ID first when available, otherwise fall back to coordinates
-        const customerId = String(d['Customer ID'] || '').trim();
-        const key = customerId || `${lat}|${lng}`;
+      // Group by Customer ID first when available, otherwise fall back to coordinates
+      const customerId = String(d['Customer ID'] || '').trim();
+      const key = customerId || `${lat}|${lng}`;
   
-        if (!grouped.has(key)) {
-          grouped.set(key, []);
-        }
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
   
-        grouped.get(key).push({
-          raw: d,
-          lat,
-          lng,
-          systemNumber
-        });
+      grouped.get(key).push({
+        raw: d,
+        lat,
+        lng,
+        systemNumber
       });
-  
-    const features = Array.from(grouped.values()).map(rows => {
-      rows.sort((a, b) => b.systemNumber - a.systemNumber);
-      const bestRow = rows[0].raw;
-      const bestSystemNumber = rows[0].systemNumber;
-  
-      return {
-        type: 'Feature',
-        properties: {
-          Population: parseNumber(bestRow['Population']),
-          name: bestRow['System Name'] || bestRow['Customer Name'] || '',
-          district: bestRow['District'] || '',
-          customerType: bestRow['Customer Type'] || '',
-          installDate: bestRow['Install Date'] || '',
-          systemName: bestRow['System Name'] || '',
-          designType: bestRow['Design Type'] || '',
-          systemNumber: bestSystemNumber
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [rows[0].lng, rows[0].lat]
-        }
-      };
     });
+  
+  const features = Array.from(grouped.values()).map(rows => {
+    rows.sort((a, b) => b.systemNumber - a.systemNumber);
+    const bestRow = rows[0].raw;
+    const bestSystemNumber = rows[0].systemNumber;
+  
+    return {
+      type: 'Feature',
+      properties: {
+        Population: parseNumber(bestRow['Population']),
+        name: bestRow['System Name'] || bestRow['Customer Name'] || '',
+        district: bestRow['District'] || '',
+        customerType: bestRow['Customer Type'] || '',
+        installDate: bestRow['Install Date'] || '',
+        systemName: bestRow['System Name'] || '',
+        designType: bestRow['Design Type'] || '',
+        systemNumber: bestSystemNumber
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [rows[0].lng, rows[0].lat]
+      }
+    };
+  });
+
 
     const geojson = { type: 'FeatureCollection', features };
 
