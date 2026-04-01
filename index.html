@@ -412,26 +412,56 @@ function bindMapInteractions() {
 
 function addSiteLayers() {
   d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
-    const features = data
-      .filter(d => d.longitude && d.latitude)
-      .map(d => ({
-        type: 'Feature',
-        properties: {
-          Population: parseNumber(d['Population']),
-          name: d['Customer Name'] || '',
-          district: d['District'] || '',
-          customerId: d['Customer ID'] || '',
-          customerType: d['Customer Type'] || '',
-          installDate: d['Install Date'] || '',
-          systemName: d['System Name'] || '',
-          designType: d['Design Type'] || '',
-          systemNumber: d['Number of Systems'] || ''
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [parseNumber(d.longitude), parseNumber(d.latitude)]
-        }
-      }));
+  const grouped = new Map();
+  
+  data
+    .filter(d => d.longitude && d.latitude)
+    .forEach(d => {
+      const lat = parseNumber(d.latitude);
+      const lng = parseNumber(d.longitude);
+  
+      const systemNumber = parseNumber(d['Customer System Number']);
+  
+      // Group by Customer ID first when available, otherwise fall back to coordinates
+      const customerId = String(d['Customer ID'] || '').trim();
+      const key = customerId || `${lat}|${lng}`;
+  
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+  
+      grouped.get(key).push({
+        raw: d,
+        lat,
+        lng,
+        systemNumber
+      });
+    });
+  
+  const features = Array.from(grouped.values()).map(rows => {
+    rows.sort((a, b) => b.systemNumber - a.systemNumber);
+    const bestRow = rows[0].raw;
+    const bestSystemNumber = rows[0].systemNumber;
+  
+    return {
+      type: 'Feature',
+      properties: {
+        Population: parseNumber(bestRow['Population']),
+        name: bestRow['System Name'] || bestRow['Customer Name'] || '',
+        district: bestRow['District'] || '',
+        customerType: bestRow['Customer Type'] || '',
+        installDate: bestRow['Install Date'] || '',
+        systemName: bestRow['System Name'] || '',
+        designType: bestRow['Design Type'] || '',
+        systemNumber: bestSystemNumber
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [rows[0].lng, rows[0].lat]
+      }
+    };
+  });
+
 
     const geojson = { type: 'FeatureCollection', features };
 
