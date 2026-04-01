@@ -411,6 +411,19 @@ function bindMapInteractions() {
 }
 
 function addSiteLayers() {
+
+  console.log(
+  data
+    .filter(d => (d['System Name'] || '').includes('All We Are'))
+    .map(d => ({
+      systemName: d['System Name'],
+      customerId: d['Customer ID'],
+      systemNumber: d['Customer System Number']
+    }))
+);
+
+console.log(Object.keys(data[0]));
+  
   d3.csv('./Impact_Map_Export%20-%20Sheet1.csv').then(function(data) {
     const systemTotalsByCustomerId = new Map();
 
