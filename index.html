@@ -375,7 +375,7 @@ function bindMapInteractions() {
   
         <div class="popup-details">
           <div><strong>System:</strong> ${escapeHtml(props.systemName || props.designType || 'N/A')}</div>
-          <div><strong>System number:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
+          <div><strong>Number of Systems:</strong> ${escapeHtml(props.systemNumber || 'N/A')}</div>
           <div><strong>Type:</strong> ${escapeHtml(props.customerType || 'N/A')}</div>
           <div><strong>District:</strong> ${escapeHtml(props.district || 'N/A')}</div>
         </div>
@@ -420,7 +420,7 @@ function addSiteLayers() {
       const lat = parseNumber(d.latitude);
       const lng = parseNumber(d.longitude);
   
-      const systemNumber = parseNumber(d['Customer System Number']);
+      const systemNumber = parseNumber(d['Customer System Total']);
   
       // Group by Customer ID first when available, otherwise fall back to coordinates
       const customerId = String(d['Customer ID'] || '').trim();
