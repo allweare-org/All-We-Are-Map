@@ -444,7 +444,7 @@ function addSiteLayers() {
         properties: {
           Population: parseNumber(bestRow['Matched Population'] || bestRow['Population']),
           name: bestRow['Matched Customer Name'] || bestRow['System Name'] || '',
-          district: bestRow['District'] || '',
+          district: bestRow['Matched District'] || '',
           customerType: bestRow['Matched Customer Type'] || bestRow['Customer Type'] || '',
           installDate: bestRow['Install Date'] || '',
           designType: bestRow['Design Type'] || '',
