@@ -1,5 +1,22 @@
 # Updating the Map Data (CSV Instructions)
 
+## Important — do this before exporting
+
+Before you download the CSV, make sure the formula-based helper columns are filled all the way down for every active row.
+
+Do not forget to drag down these columns if needed:
+
+- Customer System Total
+- Matched Customer Name
+- Matched Customer Type
+- Matched Latitude
+- Matched Longitude
+- Matched Population
+
+If these formulas are not filled down correctly, the map may load incomplete or incorrect names, types, coordinates, or population values.
+
+---
+
 The map reads its data from a CSV file exported from our master spreadsheet.
 To update the map, follow these steps exactly.
 
@@ -29,24 +46,25 @@ Google will download the file to your computer.
 
 The filename must exactly match:
 
-**Impact_Map_Export - Sheet1.csv**
+**Impact_Map_Export - System Bridge (Anchor point).csv**
 
 This includes:
 
-* spaces
-* capitalization
-* punctuation
-* the dash
-* the `.csv` extension
+- spaces
+- capitalization
+- punctuation
+- parentheses
+- the dash
+- the `.csv` extension
 
 If the filename does **not** match exactly, the map will not load the data.
 
 Examples of incorrect filenames:
 
-* Impact_Map_Export.csv
-* Impact Map Export Sheet1.csv
-* Impact_Map_Export - Sheet1 (1).csv
-* impact_map_export - sheet1.csv
+- Impact_Map_Export.csv
+- Impact Map Export System Bridge.csv
+- Impact_Map_Export - System Bridge (Anchor point) (1).csv
+- impact_map_export - system bridge (anchor point).csv
 
 These will break the map.
 
