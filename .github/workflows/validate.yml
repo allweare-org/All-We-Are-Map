@@ -20,14 +20,14 @@ jobs:
       - name: Validate HTML structure
         run: |
           echo '{ "extends": ["html-validate:recommended"], "rules": { "no-inline-style": "off", "no-trailing-whitespace": "off", "tel-non-breaking": "off", "attr-quotes": "off", "element-required-attributes": "off", "no-implicit-button-type": "off" } }' > .htmlvalidate.json
-          npx html-validate index.html
+          npx html-validate Impact-Map/index.html
 
       - name: Check JS syntax
         run: |
           node -e "
             const fs = require('fs');
             const acorn = require('acorn');
-            const html = fs.readFileSync('index.html', 'utf8');
+            const html = fs.readFileSync('Impact-Map/index.html', 'utf8');
             const match = html.match(/<script>([\s\S]*?)<\/script>/);
             if (!match) { console.log('No script block found'); process.exit(0); }
             try {
