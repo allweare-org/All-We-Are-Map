@@ -409,7 +409,7 @@ function bindMapInteractions() {
   });
 }
 function addSiteLayers() {
-  d3.csv('./Impact_Map_Export%20-%20System%20Bridge%20%28Anchor%20point%29.csv').then(function(data) {
+  d3.csv('https://docs.google.com/spreadsheets/d/e/2PACX-1vSpFsgdlsfILsKSm30c0EMSfR6inYDjP8ByrwI9emnK1Gp5CeqOJmMikZAr6s8EQTkvbuofj21J7jen/pub?output=csv').then(function(data) {
     const grouped = new Map();
 
     data
