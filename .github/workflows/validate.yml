@@ -1,0 +1,40 @@
+name: Validate HTML
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install validators
+        run: npm install --no-save html-validate acorn
+
+      - name: Validate HTML structure
+        run: |
+          echo '{ "extends": ["html-validate:recommended"], "rules": { "no-inline-style": "off", "no-trailing-whitespace": "off", "tel-non-breaking": "off", "attr-quotes": "off", "element-required-attributes": "off", "no-implicit-button-type": "off" } }' > .htmlvalidate.json
+          npx html-validate index.html
+
+      - name: Check JS syntax
+        run: |
+          node -e "
+            const fs = require('fs');
+            const acorn = require('acorn');
+            const html = fs.readFileSync('index.html', 'utf8');
+            const match = html.match(/<script>([\s\S]*?)<\/script>/);
+            if (!match) { console.log('No script block found'); process.exit(0); }
+            try {
+              acorn.parse(match[1], { ecmaVersion: 2022, sourceType: 'script' });
+              console.log('JS syntax OK');
+            } catch (e) {
+              console.error('JS syntax error:', e.message);
+              process.exit(1);
+            }
+          "
