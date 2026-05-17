@@ -25,7 +25,7 @@ type LocationData struct {
 	Longitude string
 }
 
-func generate_map() {
+func main() {
 	ctx := context.Background()
 
 	// 1. Read the JSON credentials file
